@@ -1,5 +1,6 @@
 package foobar;
 
+import java.util.Scanner;
 import java.math.BigInteger;
 import java.util.Hashtable;
 import java.util.ArrayList;
@@ -65,6 +66,8 @@ class ElevatorVersion implements Comparable<ElevatorVersion> {
 }
 
 public class GoogleFoobarChallenge {
+    private static Scanner scanner = new Scanner(System.in);
+
     public static int[] solution1(int[] data, int n) {
         /* minion labor shifts */
         Hashtable<Integer, Integer> hashTable = new Hashtable<>();
@@ -155,8 +158,30 @@ public class GoogleFoobarChallenge {
         }
     }
 
+    public static int countStaircase(int current_height, int bricks_left, int n) {
+        if(current_height == bricks_left) {
+            return 1;
+        } else {
+            if(bricks_left==n && bricks_left-(current_height+1)<(current_height+2)) {
+                return countStaircase(current_height+1, bricks_left-current_height, n);
+            } else if(bricks_left-current_height < current_height+1) {
+                return 1;
+            } else {
+                return countStaircase(current_height+1, bricks_left-current_height, n)+countStaircase(current_height+1, bricks_left, n);
+            }
+        }
+    }
+
+    public static int solution3B(int n) {
+        /* the grandest staircase of them all */
+        return countStaircase(1, n, n);
+    }
+
     public static void main(String[] args) {
-        System.out.println(solution3A("2", "2"));
+        while(scanner.hasNext()) {
+            System.out.println(solution3B(scanner.nextInt()));
+        }
+
         return ;
     }
 }
