@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.PriorityQueue;
 
 class ElevatorVersion implements Comparable<ElevatorVersion> {
     private String elevatorVersionNumber;
@@ -62,6 +63,114 @@ class ElevatorVersion implements Comparable<ElevatorVersion> {
             }
         }
         return 0;
+    }
+}
+
+class Coordinate {
+    private int x;
+    private int y;
+
+    public Coordinate(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public boolean isEqual(Coordinate coordinate) {
+        return (this.x==coordinate.x && this.y==coordinate.y);
+    }
+}
+
+class PathNode implements Comparable<PathNode> {
+    private Coordinate current;
+    private static Coordinate goal;
+    private boolean isWallRemoved;
+    private PathNode parent;
+    private int distanceFromStart;
+
+    public PathNode(Coordinate current, boolean isWallRemoved, PathNode parent, int distanceFromStart) {
+        this.current = current;
+        this.isWallRemoved = isWallRemoved;
+        this.parent = parent;
+        this.distanceFromStart = distanceFromStart;
+    }
+
+    public static void setGoal(Coordinate goalCoordinate) {
+        goal = goalCoordinate;
+        return ;
+    }
+
+    public void setIsWallRemoved(boolean isWallRemoved) {
+        this.isWallRemoved = isWallRemoved;
+        return ;
+    }
+
+    public boolean isWallRemoved() {
+        return isWallRemoved;
+    }
+
+    public boolean isGoal() {
+        return current.isEqual(goal);
+    }
+
+    public Coordinate getCurrent() {
+        return current;
+    }
+
+    public int getFnDistance() {
+        return this.distanceFromStart+(this.goal.getX()-this.current.getX())+(this.goal.getY()-this.current.getY());
+    }
+
+    public PathNode[] getChildren() {
+        PathNode[] children = new PathNode[3];
+        int index = 0;
+
+        if(parent!=null && (!parent.current.isEqual(new Coordinate(current.getX()-1, current.getY())) && current.getX()>0)) {
+            children[index++] = new PathNode(new Coordinate(current.getX()-1, current.getY()), isWallRemoved, this, distanceFromStart+1);
+        }
+        if(parent==null || (!parent.current.isEqual(new Coordinate(current.getX()+1, current.getY())) && current.getX()<goal.getX())) {
+            children[index++] = new PathNode(new Coordinate(current.getX()+1, current.getY()), isWallRemoved, this, distanceFromStart+1);
+        }
+        if(parent!=null && (!parent.current.isEqual(new Coordinate(current.getX(), current.getY()-1)) && current.getY()>0)) {
+            children[index++] = new PathNode(new Coordinate(current.getX(), current.getY()-1), isWallRemoved, this, distanceFromStart+1);
+        }
+        if(parent==null || (!parent.current.isEqual(new Coordinate(current.getX(), current.getY()+1)) && current.getY()<goal.getY())) {
+            children[index++] = new PathNode(new Coordinate(current.getX(), current.getY()+1), isWallRemoved, this, distanceFromStart+1);
+        }
+        return children;
+    }
+
+    @Override
+    public int compareTo(PathNode pathNode) {
+        int this_fn = this.distanceFromStart+(this.goal.getX()-this.current.getX())+(this.goal.getY()-this.current.getY());
+        int pathNode_fn = pathNode.distanceFromStart+(pathNode.goal.getX()-pathNode.current.getX())+(pathNode.goal.getY()-pathNode.current.getY());
+
+        return this_fn-pathNode_fn;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if(this == object) {
+            return true;
+        }
+        if(object==null || this.getClass()!=object.getClass()) {
+            return false;
+        }
+
+        PathNode pathNode = (PathNode) object;
+        return (current.isEqual(pathNode.current) && this.isWallRemoved==pathNode.isWallRemoved);
+    }
+
+    @Override
+    public int hashCode() {
+        return (current.getX()*10+current.getY())<<1+(isWallRemoved? 1: 0);
     }
 }
 
@@ -177,10 +286,49 @@ public class GoogleFoobarChallenge {
         return countStaircase(1, n, n);
     }
 
-    public static void main(String[] args) {
-        while(scanner.hasNext()) {
-            System.out.println(solution3B(scanner.nextInt()));
+    public static int solution3C(int[][] map) {
+        /* prepare the bunnies' escape */
+        PriorityQueue<PathNode> openListPQ = new PriorityQueue<>();
+        Hashtable<PathNode, Integer> openList = new Hashtable<>();
+        Hashtable<PathNode, Integer> closedList = new Hashtable<>();
+
+        PathNode.setGoal(new Coordinate(map.length-1, map[0].length-1));
+        PathNode tempNode = new PathNode(new Coordinate(0, 0), false, null, 1);
+        openListPQ.add(tempNode);
+        openList.put(tempNode, tempNode.getFnDistance());
+
+        boolean isGoalFound = false;
+        while(!isGoalFound && !openListPQ.isEmpty()) {
+            tempNode = openListPQ.poll();
+            closedList.put(tempNode, tempNode.getFnDistance());
+
+            PathNode[] children = tempNode.getChildren();
+            for(int i=0; i<children.length; i++) {
+                if(children[i]==null || (children[i].isWallRemoved() && map[children[i].getCurrent().getX()][children[i].getCurrent().getY()]==1)) {
+                    continue;
+                }
+                if(children[i].isGoal()) {
+                    isGoalFound = true;
+                    break;
+                }
+                if(!children[i].isWallRemoved() && map[children[i].getCurrent().getX()][children[i].getCurrent().getY()]==1) {
+                    children[i].setIsWallRemoved(true);
+                }
+                if(closedList.containsKey(children[i])) {
+                    continue;
+                }
+                if(openList.containsKey(children[i]) && openList.get(children[i])<=children[i].getFnDistance()) {
+                    continue;
+                }
+                openListPQ.add(children[i]);
+                openList.put(children[i], children[i].getFnDistance());
+            }
         }
+
+        return tempNode.getFnDistance();
+    }
+
+    public static void main(String[] args) {
 
         return ;
     }
