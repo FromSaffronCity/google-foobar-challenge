@@ -1,5 +1,5 @@
 # google-foobar-challenge
-solutions to problems from google foobar challenge
+**solutions to problems from google foobar challenge**
 
 
 ## Minion Labor Shifts (problem-1)
